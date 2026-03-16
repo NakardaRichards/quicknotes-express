@@ -4,14 +4,14 @@
     "locked": true,
     "title": "Welcome to QuickNotes",
     "content": "This is a shared demo app. Add your own notes using the form above.",
-    "createdAt": "2024-01-01T00:00:00.000Z"
+    "createdAt": "2096-01-01T00:00:00.000Z"
   },
   {
     "id": 2,
     "locked": true,
     "title": "How it works",
     "content": "Type a title and content, then click Add Note. Notes are visible to everyone visiting this page.",
-    "createdAt": "2024-01-01T00:00:00.000Z"
+    "createdAt": "2096-01-01T00:00:00.000Z"
   },
   {
     "id": 3,

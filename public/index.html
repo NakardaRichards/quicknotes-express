@@ -178,12 +178,27 @@
     }
 
     .edit-inputs .discard-btn:hover { background: #e5e7eb; }
+
+    footer {
+      text-align: center;
+      margin-top: 48px;
+      padding-bottom: 32px;
+      font-size: 0.82rem;
+      color: #bbb;
+    }
+
+    footer a {
+      color: #4f46e5;
+      text-decoration: none;
+    }
+
+    footer a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
 
   <h1>QuickNotes</h1>
-<p class="subtitle">A shared notepad. Notes are temporary and may disappear at any time.</p>
+  <p class="subtitle">A shared notepad. Notes are temporary and may disappear at any time.</p>
 
   <div class="form-card">
     <input id="title" type="text" placeholder="Title" />
@@ -192,6 +207,10 @@
   </div>
 
   <div class="notes-grid" id="notes"></div>
+
+  <footer>
+    <p>Built by <a href="https://github.com/NakardaRichards/quicknotes-express" target="_blank">Nakarda Richards</a></p>
+  </footer>
 
   <script>
     const API = "/api/notes";
