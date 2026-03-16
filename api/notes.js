@@ -2,6 +2,7 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 import cors from "cors";
+import rateLimit from "express-rate-limit";
 
 const app = express();
 app.use(cors());
@@ -30,6 +31,25 @@ const writeNotes = (notes) => {
   }
 };
 
+// Rate limiters
+const getLimiter = rateLimit({
+  windowMs: 60 * 1000,  // 1 minute
+  max: 60,              // 60 GET requests per minute per IP
+  message: { error: "Too many requests, please try again later." }
+});
+
+const createLimiter = rateLimit({
+  windowMs: 60 * 1000,  // 1 minute
+  max: 5,               // 5 new notes per minute per IP
+  message: { error: "Too many notes created, slow down." }
+});
+
+const mutateLimiter = rateLimit({
+  windowMs: 60 * 1000,  // 1 minute
+  max: 15,              // 15 edits/deletes per minute per IP
+  message: { error: "Too many requests, please try again later." }
+});
+
 // Auto cleanup every 2 hours
 let lastCleanup = Date.now();
 
@@ -49,12 +69,12 @@ app.use((req, res, next) => {
 });
 
 // GET all notes
-app.get("/api/notes", (req, res) => {
+app.get("/api/notes", getLimiter, (req, res) => {
   res.json(readNotes());
 });
 
 // GET note by ID
-app.get("/api/notes/:id", (req, res) => {
+app.get("/api/notes/:id", getLimiter, (req, res) => {
   const notes = readNotes();
   const note = notes.find(n => n.id === parseInt(req.params.id));
   if (!note) return res.status(404).json({ error: "Note not found" });
@@ -62,7 +82,7 @@ app.get("/api/notes/:id", (req, res) => {
 });
 
 // POST create note
-app.post("/api/notes", (req, res) => {
+app.post("/api/notes", createLimiter, (req, res) => {
   const notes = readNotes();
   const { title, content } = req.body;
   if (!title || !content) return res.status(400).json({ error: "Missing title or content" });
@@ -80,7 +100,7 @@ app.post("/api/notes", (req, res) => {
 });
 
 // PUT update note
-app.put("/api/notes/:id", (req, res) => {
+app.put("/api/notes/:id", mutateLimiter, (req, res) => {
   const notes = readNotes();
   const note = notes.find(n => n.id === parseInt(req.params.id));
   if (!note) return res.status(404).json({ error: "Note not found" });
@@ -94,7 +114,7 @@ app.put("/api/notes/:id", (req, res) => {
 });
 
 // DELETE note
-app.delete("/api/notes/:id", (req, res) => {
+app.delete("/api/notes/:id", mutateLimiter, (req, res) => {
   let notes = readNotes();
   const note = notes.find(n => n.id === parseInt(req.params.id));
   if (!note) return res.status(404).json({ error: "Note not found" });
