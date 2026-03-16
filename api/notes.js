@@ -62,22 +62,6 @@ const mutateLimiter = rateLimit({
   message: { error: "Too many requests, please try again later." }
 });
 
-// ── Auto cleanup every 20 minutes (unlocked notes only) ──────────────────────
-let lastCleanup = Date.now();
-
-const cleanup = async () => {
-  const now = Date.now();
-  if (now - lastCleanup < 20 * 60 * 1000) return;
-  await Note.deleteMany({ locked: false });
-  lastCleanup = now;
-  console.log("Cleanup ran — user notes cleared");
-};
-
-app.use((req, res, next) => {
-  cleanup();
-  next();
-});
-
 // ── Routes ────────────────────────────────────────────────────────────────────
 
 // GET all notes
@@ -141,6 +125,17 @@ app.delete("/api/notes/:id", mutateLimiter, async (req, res) => {
     res.json({ message: "Note deleted" });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete note" });
+  }
+});
+
+// CLEANUP — called by cron job
+app.get("/api/cleanup", async (req, res) => {
+  try {
+    const result = await Note.deleteMany({ locked: false });
+    console.log(`Cleanup ran every 6 hours — ${result.deletedCount} notes removed`);
+    res.json({ message: "Cleanup complete", deleted: result.deletedCount });
+  } catch (err) {
+    res.status(500).json({ error: "Cleanup failed" });
   }
 });
 
