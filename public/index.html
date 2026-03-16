@@ -209,7 +209,7 @@
   <div class="notes-grid" id="notes"></div>
 
   <footer>
-    <p>Built by <a href="https://github.com/NakardaRichards/quicknotes-express" target="_blank">Nakarda Richards</a></p>
+    <p>Built by <a href="https://github.com/NakardaRichards" target="_blank">Nakarda Richards</a></p>
   </footer>
 
   <script>
@@ -217,39 +217,43 @@
     let allNotes = [];
 
     async function loadNotes() {
-      const res = await fetch(API);
-      allNotes = await res.json();
-      const container = document.getElementById("notes");
+      try {
+        const res = await fetch(API);
+        allNotes = await res.json();
+        const container = document.getElementById("notes");
 
-      if (!allNotes.length) {
-        container.innerHTML = `<p class="empty">No notes yet. Be the first to add one.</p>`;
-        return;
+        if (!allNotes.length) {
+          container.innerHTML = `<p class="empty">No notes yet. Be the first to add one.</p>`;
+          return;
+        }
+
+        container.innerHTML = [...allNotes].reverse().map(n => `
+          <div class="note-card ${n.locked ? 'locked' : ''}" id="card-${n._id}">
+            <div class="card-actions">
+              ${!n.locked ? `
+                <button class="edit-btn" onclick="startEdit('${n._id}')">Edit</button>
+                <button class="delete-btn" onclick="deleteNote('${n._id}')">Delete</button>
+              ` : ''}
+            </div>
+            <h3>${n.title}</h3>
+            <p>${n.content}</p>
+            <small>${new Date(n.createdAt).toLocaleString()}</small>
+            <div class="edit-inputs">
+              <input id="edit-title-${n._id}" type="text" />
+              <textarea id="edit-content-${n._id}" rows="4"></textarea>
+              <button class="save-btn" onclick="saveEdit('${n._id}')">Save</button>
+              <button class="discard-btn" onclick="discardEdit('${n._id}')">Discard</button>
+            </div>
+          </div>
+        `).join("");
+      } catch (err) {
+        document.getElementById("notes").innerHTML = `<p class="empty">Could not load notes. Please try again.</p>`;
       }
-
-      container.innerHTML = [...allNotes].reverse().map(n => `
-        <div class="note-card ${n.locked ? 'locked' : ''}" id="card-${n.id}">
-          <div class="card-actions">
-            ${!n.locked ? `
-              <button class="edit-btn" onclick="startEdit(${n.id})">Edit</button>
-              <button class="delete-btn" onclick="deleteNote(${n.id})">Delete</button>
-            ` : ''}
-          </div>
-          <h3>${n.title}</h3>
-          <p>${n.content}</p>
-          <small>${new Date(n.createdAt).toLocaleString()}</small>
-          <div class="edit-inputs">
-            <input id="edit-title-${n.id}" type="text" />
-            <textarea id="edit-content-${n.id}" rows="4"></textarea>
-            <button class="save-btn" onclick="saveEdit(${n.id})">Save</button>
-            <button class="discard-btn" onclick="discardEdit(${n.id})">Discard</button>
-          </div>
-        </div>
-      `).join("");
     }
 
     function startEdit(id) {
       discardAllEdits();
-      const note = allNotes.find(n => n.id === id);
+      const note = allNotes.find(n => n._id === id);
       if (!note) return;
       const card = document.getElementById(`card-${id}`);
       card.classList.add("editing");
