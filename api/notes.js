@@ -40,13 +40,13 @@ const getLimiter = rateLimit({
 
 const createLimiter = rateLimit({
   windowMs: 60 * 1000,  // 1 minute
-  max: 5,               // 5 new notes per minute per IP
+  max: 20,              // 20 new notes per minute per IP
   message: { error: "Too many notes created, slow down." }
 });
 
 const mutateLimiter = rateLimit({
   windowMs: 60 * 1000,  // 1 minute
-  max: 15,              // 15 edits/deletes per minute per IP
+  max: 30,              // 30 edits/deletes per minute per IP
   message: { error: "Too many requests, please try again later." }
 });
 
@@ -55,7 +55,7 @@ let lastCleanup = Date.now();
 
 const cleanup = () => {
   const now = Date.now();
-  if (now - lastCleanup < 2 * 60 * 60 * 1000) return;
+  if (now - lastCleanup < 20 * 60 * 1000) return; // 20 minutes
   const notes = readNotes();
   const locked = notes.filter(n => n.locked);
   writeNotes(locked);
