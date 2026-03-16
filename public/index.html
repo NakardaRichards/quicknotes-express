@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QuickNotes</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      padding: 40px 16px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 8px;
+      font-size: 1.8rem;
+      color: #1a1a2e;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #888;
+      font-size: 0.88rem;
+      margin-bottom: 28px;
+    }
+
+    .form-card {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      max-width: 560px;
+      margin: 0 auto 32px;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      transition: border 0.2s;
+      resize: none;
+    }
+
+    input:focus, textarea:focus { border-color: #4f46e5; }
+
+    button.add-btn {
+      width: 100%;
+      padding: 11px;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button.add-btn:hover { background: #4338ca; }
+
+    .notes-grid {
+      max-width: 560px;
+      margin: 0 auto;
+      display: grid;
+      gap: 14px;
+    }
+
+    .note-card {
+      background: white;
+      padding: 18px;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+      position: relative;
+    }
+
+    .note-card.locked {
+      border-left: 3px solid #4f46e5;
+    }
+
+    .note-card h3 {
+      font-size: 1rem;
+      margin-bottom: 6px;
+      color: #1a1a2e;
+      padding-right: 100px;
+      font-weight: 600;
+    }
+
+    .note-card p {
+      color: #555;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .note-card small {
+      display: block;
+      margin-top: 10px;
+      color: #bbb;
+      font-size: 0.76rem;
+    }
+
+    .card-actions {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      display: flex;
+      gap: 6px;
+    }
+
+    .card-actions button {
+      background: none;
+      border: none;
+      font-size: 0.8rem;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-family: inherit;
+      transition: background 0.2s, color 0.2s;
+      color: #999;
+    }
+
+    .edit-btn:hover { background: #f0f0ff; color: #4f46e5; }
+    .delete-btn:hover { background: #fff0f0; color: #e74c3c; }
+
+    .empty {
+      text-align: center;
+      color: #bbb;
+      margin-top: 40px;
+      font-size: 0.92rem;
+    }
+
+    .note-card.editing h3,
+    .note-card.editing p,
+    .note-card.editing small { display: none; }
+
+    .edit-inputs { display: none; }
+    .note-card.editing .edit-inputs { display: block; }
+
+    .edit-inputs input,
+    .edit-inputs textarea { margin-bottom: 8px; }
+
+    .edit-inputs .save-btn {
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 0.88rem;
+      font-family: inherit;
+      cursor: pointer;
+      margin-right: 6px;
+      transition: background 0.2s;
+    }
+
+    .edit-inputs .save-btn:hover { background: #4338ca; }
+
+    .edit-inputs .discard-btn {
+      background: #f3f4f6;
+      color: #555;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 0.88rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .edit-inputs .discard-btn:hover { background: #e5e7eb; }
+  </style>
+</head>
+<body>
+
+  <h1>QuickNotes</h1>
+<p class="subtitle">A shared notepad. Notes are temporary and may disappear at any time.</p>
+
+  <div class="form-card">
+    <input id="title" type="text" placeholder="Title" />
+    <textarea id="content" rows="4" placeholder="Write your note..."></textarea>
+    <button class="add-btn" onclick="createNote()">Add Note</button>
+  </div>
+
+  <div class="notes-grid" id="notes"></div>
+
+  <script>
+    const API = "/api/notes";
+    let allNotes = [];
+
+    async function loadNotes() {
+      const res = await fetch(API);
+      allNotes = await res.json();
+      const container = document.getElementById("notes");
+
+      if (!allNotes.length) {
+        container.innerHTML = `<p class="empty">No notes yet. Be the first to add one.</p>`;
+        return;
+      }
+
+      container.innerHTML = [...allNotes].reverse().map(n => `
+        <div class="note-card ${n.locked ? 'locked' : ''}" id="card-${n.id}">
+          <div class="card-actions">
+            ${!n.locked ? `
+              <button class="edit-btn" onclick="startEdit(${n.id})">Edit</button>
+              <button class="delete-btn" onclick="deleteNote(${n.id})">Delete</button>
+            ` : ''}
+          </div>
+          <h3>${n.title}</h3>
+          <p>${n.content}</p>
+          <small>${new Date(n.createdAt).toLocaleString()}</small>
+          <div class="edit-inputs">
+            <input id="edit-title-${n.id}" type="text" />
+            <textarea id="edit-content-${n.id}" rows="4"></textarea>
+            <button class="save-btn" onclick="saveEdit(${n.id})">Save</button>
+            <button class="discard-btn" onclick="discardEdit(${n.id})">Discard</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function startEdit(id) {
+      discardAllEdits();
+      const note = allNotes.find(n => n.id === id);
+      if (!note) return;
+      const card = document.getElementById(`card-${id}`);
+      card.classList.add("editing");
+      document.getElementById(`edit-title-${id}`).value = note.title;
+      document.getElementById(`edit-content-${id}`).value = note.content;
+    }
+
+    function discardEdit(id) {
+      document.getElementById(`card-${id}`).classList.remove("editing");
+    }
+
+    function discardAllEdits() {
+      document.querySelectorAll(".note-card.editing").forEach(c => c.classList.remove("editing"));
+    }
+
+    async function saveEdit(id) {
+      const title = document.getElementById(`edit-title-${id}`).value.trim();
+      const content = document.getElementById(`edit-content-${id}`).value.trim();
+      if (!title || !content) return alert("Title and content cannot be empty.");
+
+      await fetch(`${API}/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, content })
+      });
+
+      loadNotes();
+    }
+
+    async function createNote() {
+      const title = document.getElementById("title").value.trim();
+      const content = document.getElementById("content").value.trim();
+      if (!title || !content) return alert("Please fill in both fields.");
+
+      await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, content })
+      });
+
+      document.getElementById("title").value = "";
+      document.getElementById("content").value = "";
+      loadNotes();
+    }
+
+    async function deleteNote(id) {
+      if (!confirm("Delete this note?")) return;
+      await fetch(`${API}/${id}`, { method: "DELETE" });
+      loadNotes();
+    }
+
+    loadNotes();
+  </script>
+</body>
+</html>
