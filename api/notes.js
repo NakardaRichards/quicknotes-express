@@ -10,8 +10,25 @@ app.use(express.static(path.join(process.cwd(), "public")));
 
 const dataPath = path.join(process.cwd(), "data", "notes.json");
 
-const readNotes = () => JSON.parse(fs.readFileSync(dataPath, "utf8"));
-const writeNotes = (notes) => fs.writeFileSync(dataPath, JSON.stringify(notes, null, 2));
+const readNotes = () => {
+  try {
+    return JSON.parse(fs.readFileSync(dataPath, "utf8"));
+  } catch {
+    return [
+      { id: 1, locked: true, title: "Welcome to QuickNotes", content: "This is a shared demo app. Add your own notes using the form above.", createdAt: "2024-01-01T00:00:00.000Z" },
+      { id: 2, locked: true, title: "How it works", content: "Type a title and content, then click Add Note. Notes are visible to everyone visiting this page.", createdAt: "2024-01-01T00:00:00.000Z" }
+    ];
+  }
+};
+
+const writeNotes = (notes) => {
+  try {
+    fs.mkdirSync(path.dirname(dataPath), { recursive: true });
+    fs.writeFileSync(dataPath, JSON.stringify(notes, null, 2));
+  } catch (err) {
+    console.error("Write error:", err);
+  }
+};
 
 // Auto cleanup every 2 hours
 let lastCleanup = Date.now();
@@ -89,7 +106,7 @@ app.delete("/api/notes/:id", (req, res) => {
 });
 
 // Fallback — serve index.html for any unmatched route
-app.get("*", (req, res) => {
+app.get("/{*path}", (req, res) => {
   res.sendFile(path.join(process.cwd(), "public", "index.html"));
 });
 
